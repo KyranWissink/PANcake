@@ -23,6 +23,8 @@ eval $(parse_yaml config.yaml "CONF_")
 if [ ${CONF_multiple_chromosomes} == 1 ]
 then
   echo "Running sequence partitioning"
+if [ ! -d ${CONF_sample}seqpart/ ]
+then
   python3 scripts/combine.py ${CONF_sample}
   mkdir ${CONF_sample}seqpart/
   mv ${CONF_sample}combined.fa ${CONF_sample}/seqpart/combined.fa
@@ -35,9 +37,16 @@ then
     -e ${wd}distances.tsv.edges.list.txt \
     -w ${wd}distances.tsv.edges.weights.txt \
     -n ${wd}distances.tsv.vertices.id2name.txt
+
+else
+  wd=${CONF_sample}seqpart/
+
+fi
+
+  echo "Indexing data"
   ncommunities=$(ls ${wd} | grep distances.tsv.edges.weights.txt.community | wc -l)
 
-  seq 0 ($ncommunities-1) | while read i; do
+  seq 0 $ncommunities | while read i; do
     echo "community $i"
     samtools faidx ${wd}combined.fa.gz $(cat ${wd}distances.tsv.edges.weights.txt.community.$i.txt) | \
     bgzip -@ 4 -c > ${wd}community.$i.fa.gz
@@ -52,7 +61,7 @@ then
 
     echo "Initialising..."
     python3 scripts/init.py
-    
+
     echo "Running snakemake..."
     snakemake -p --forcerun --cores
   done
