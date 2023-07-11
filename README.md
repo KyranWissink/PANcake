@@ -15,11 +15,9 @@ conda create --name env_name --file pkgs/spec-file.txt
 conda activate env_name
 ```
 
-3) Set up the file system
+3) Run the setup
 ```bash
-mkdir data
-mkdir sorted_data
-mkdir output
+bash setup.sh
 ```
 
 4) Set up the config.yaml correctly. 
