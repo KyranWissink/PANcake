@@ -22,6 +22,7 @@ bash scripts/setup.sh
 
 4) Set up the config.yaml correctly. 
 This file is in Yaml format, so the layout should not be changed.
+The optional parameters will be supplied by the initialisation script. Only input these if you do not want this to be automated.
 ```bash
 multiple_chromosomes: 0/1		# MANDATORY 0=no, 1=yes
 pggb:				  	# PGGB parameters
