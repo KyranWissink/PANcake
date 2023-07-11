@@ -11,8 +11,8 @@ cd MPI
 
 2) Set up the conda environment
 ```bash
-conda create --name env_name --file spec-file.txt
-conda activate env_name
+conda create --name mpi --file spec-file.txt
+conda activate mpi
 ```
 
 3) Run the setup
