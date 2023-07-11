@@ -19,7 +19,7 @@ conda activate env_name
 ```bash
 mkdir data
 mkdir output
-
+```
 
 4) Set up the config.yaml correctly. 
 This file is in Yaml format, so the layout should not be changed.
