@@ -21,12 +21,12 @@ conda activate env_name
 This file is in Yaml format, so the layout should not be changed.
 ```bash
 multiple_chromosomes: 0/1		# MANDATORY 0=no, 1=yes
-pggb:				# PGGB parameters
+pggb:				  # PGGB parameters
   haplotypes: n				# OPTIONAL number of haplotypes 
   percent_identity: n			# OPTIONAL lowest similarity percentage between haplotypes
   poa_params: asm5/asm10/asm20		# OPTIONAL partial order alignment parameters (based on percent identity)
   segment_length: n			# MANDATORY length of the mapped and aligned segment
   threads: n				# MANDATORY number of threads to use
 runid: your_id				# MANDATORY the runid (the output folder will have this name)
-sample: path/to/data				# MANDATORY your input data
+sample: path/to/data			# MANDATORY your input data
 ```
