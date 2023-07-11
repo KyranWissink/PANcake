@@ -18,6 +18,7 @@ conda activate env_name
 3) Set up the file system
 ```bash
 mkdir data
+mkdir sorted_data
 mkdir output
 ```
 
