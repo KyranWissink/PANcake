@@ -17,7 +17,7 @@ conda activate env_name
 
 3) Run the setup
 ```bash
-bash setup.sh
+bash scripts/setup.sh
 ```
 
 4) Set up the config.yaml correctly. 
