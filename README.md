@@ -33,3 +33,10 @@ pggb:				  	# PGGB parameters
 runid: your_id				# MANDATORY the runid (the output folder will have this name)
 sample: path/to/data			# MANDATORY your input data
 ```
+
+5) Run your sample.
+```bash
+bash run.sh
+```
+
+6) Done! Check your results in the output folder
