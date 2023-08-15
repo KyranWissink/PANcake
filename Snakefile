@@ -6,10 +6,10 @@ Created on Thu Jan 12 11:02:00 2023
 """
 
 # Set the config file as initialised by init.py
-configfile: "config.yaml"
+configfile: "snakemake_config.yaml"
 
 # Extract sample name from config file
-sample_name = config["sample"].split("/")[-1]
+sample_name = config["input_sample"].split("/")[-1]
 
 # Define output directory
 output_dir = "output/" + config["runid"] + "/"
@@ -27,15 +27,15 @@ rule all:
         output_dir + "multiqc_report.html"
     shell:
         """
-        cp config.yaml {output_dir}
-        zip -m {output_dir}snake_out.zip {output_dir}config.yaml {output_dir}coreness_stats.csv {output_dir}data.gfa {output_dir}heatmap.png {output_dir}multiqc_config.yaml
+        mv snakemake_config.yaml {output_dir}
+        
         """
 
 
 # Moves the input data to a new directory and uses samtools to index it
 rule sort_data:
     input:
-        config["sample"]
+        config["input_sample"]
     output:
         sorted_data_dir
     shell:
@@ -52,9 +52,9 @@ rule pggb:
     output:
         directory(pggb_output_dir)
     params:
-        haplotypes = config["pggb"]["haplotypes"],
+        haplotypes = config["pggb"]["number_of_genomes"],
         segment_length = config["pggb"]["segment_length"],
-        poa_params = config["pggb"]["poa_params"],
+        poa_params = config["pggb"]["poa_parameters"],
         percent_identity = config["pggb"]["percent_identity"],
         threads = config["pggb"]["threads"]
     shell:
