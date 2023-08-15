@@ -20,24 +20,71 @@ conda activate mpi
 bash scripts/setup.sh
 ```
 
-4) Set up the config.yaml correctly. 
-This file is in Yaml format, so the layout should not be changed.
-The optional parameters will be supplied by the initialisation script. Only input these if you do not want this to be automated.
+4) Run bash run.sh for the parameters
 ```bash
-multiple_chromosomes: 0/1		# MANDATORY 0=no, 1=yes
-pggb:				  	# PGGB parameters
-  haplotypes: n				# OPTIONAL number of haplotypes 
-  percent_identity: n			# OPTIONAL lowest similarity percentage between haplotypes
-  poa_params: asm5/asm10/asm20		# OPTIONAL partial order alignment parameters (based on percent identity)
-  segment_length: n			# MANDATORY length of the mapped and aligned segment
-  threads: n				# MANDATORY number of threads to use
-runid: your_id				# MANDATORY the runid (the output folder will have this name)
-sample: path/to/data			# MANDATORY your input data
-```
+Version: 0.7
 
-5) Run your sample.
-```bash
-bash run.sh
-```
+Usage:
 
-6) Done! Check your results in the output folder
+        bash run.sh [options] -i <input> -o <output_dir>
+
+Description:
+
+        Pipeline for pangenome graph creation using pggb
+
+Options:
+
+Mandatory:
+
+        -i --input-sample               input fasta file or directory. Zipped files are supported.
+
+        -o --output-directory           directory to output all files. Need not be yet created.
+
+Optional:
+
+        -mc --multiple-chromosomes      Use this parameter if the sample contains multiple chromosomes.
+
+        -n --number-of-genomes          The number of genomes in the sample
+
+        -p --percent-identity           The lowest similarity between all sequences in percentages
+
+        -poa --poa-parameters           The partial order alignment parameters to use (asm5, asm10, asm20)
+
+        -s --segment-length             Segment length for mapping [default: 10k]
+
+        -t --threads                    Number of threads to use [default: 16]
+Version: 0.7
+
+Usage:
+
+        bash run.sh [options] -i <input> -o <output_dir>
+
+Description:
+
+        Pipeline for pangenome graph creation using pggb
+
+Options:
+
+Mandatory:
+
+        -i --input-sample               input fasta file or directory. Zipped files are supported.
+
+        -o --output-directory           directory to output all files. Need not be yet created.
+
+Optional:
+
+        -mc --multiple-chromosomes      Use this parameter if the sample contains multiple chromosomes.
+
+        -n --number-of-genomes          The number of genomes in the sample
+
+        -p --percent-identity           The lowest similarity between all sequences in percentages
+
+        -poa --poa-parameters           The partial order alignment parameters to use (asm5, asm10, asm20)
+
+        -s --segment-length             Segment length for mapping [default: 10k]
+
+        -t --threads                    Number of threads to use [default: 16]
+
+```
+Output will be stored at output/{runid}/
+
