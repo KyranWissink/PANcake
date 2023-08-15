@@ -22,7 +22,7 @@ bash scripts/setup.sh
 
 4) Run bash run.sh for the parameters
 ```bash
-Version: 0.7
+MPI Version: 0.7
 
 Usage:
 
