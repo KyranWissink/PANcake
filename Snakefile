@@ -5,8 +5,7 @@ Created on Thu Jan 12 11:02:00 2023
 @author: Kyran Wissink
 """
 
-# Set the config file as initialised by init.py
-configfile: "snakemake_config.yaml"
+import re
 
 # Extract sample name from config file
 sample_name = config["input_sample"].split("/")[-1]
@@ -14,12 +13,14 @@ sample_name = config["input_sample"].split("/")[-1]
 # Define output directory
 output_dir = "output/" + config["runid"] + "/"
 
+# Get config file
+conf = "snakemake_config.yaml"
+
 # Define sorted data directory
 sorted_data_dir = "sorted_data/" + config["runid"] + "/" + sample_name
 
 # Define pggb output directory
 pggb_output_dir = output_dir + "pggb_out"
-
 
 # Final output rule
 rule all:
@@ -27,7 +28,7 @@ rule all:
         output_dir + "multiqc_report.html"
     shell:
         """
-        mv snakemake_config.yaml {output_dir}
+        echo "Snakemake Finished."
         
         """
 
@@ -59,6 +60,7 @@ rule pggb:
         threads = config["pggb"]["threads"]
     shell:
         """
+	mkdir -p {pggb_output_dir}
         pggb --input-fasta {input} \
         --threads {params.threads} \
         -n {params.haplotypes} \

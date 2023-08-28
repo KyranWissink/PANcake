@@ -1,90 +1,23 @@
 #!/bin/bash
 
 set -e  # To prevent a repeat of the big scare of 04/05/2023
+source functions.sh
 
 ###########################
 #   INITIAL PARAMETERS    #
 ###########################
 
-percent_identity=""
+percent_identity=95
 poa_parameters=""
 segment_length=10000
 threads=16
 multiple_chromosomes=0
 
-#################
-#   FUNCTIONS   #
-#################
-
-combine_fasta() {
-    local directory="$1"
-    local output_file="${directory}combined.fa"
-
-    if [[ ! $directory == */ ]]; then
-        directory="$directory/"
-    fi
-
-    if [[ -f $output_file ]]; then
-        echo "'$output_file' already exists, skipping file combination."
-        return
-    fi
-
-    if [[ ! -d $directory ]]; then
-        echo "Directory '$directory' does not exist."
-        exit 1
-    fi
-
-    fasta_files=(${directory}*.fa*)
-
-    if [[ ${#fasta_files[@]} -eq 0 ]]; then
-        echo "No .fasta files found in directory '$directory'."
-        exit 1
-    fi
-
-    for filename in "${fasta_files[@]}"; do
-        file_name=$(basename "$filename" | cut -d. -f1)
-        sed "s/^>/>$file_name_/" "$filename"
-    done > "$output_file"
-
-    echo "Combined ${#fasta_files[@]} .fasta files into '$output_file'."
-}
-
-# Function to run necessary processes
-function run_snakemake {
-
-  # Define the path for the YAML config file
-  CONFIG_FILE="snakemake_config.yaml"
-
-  # Create a YAML-formatted config file
-  echo "multiple_chromosomes: $multiple_chromosomes" > "$CONFIG_FILE"
-  echo "pggb:" >> "$CONFIG_FILE"
-  echo "  number_of_genomes: $number_of_genomes" >> "$CONFIG_FILE"
-  echo "  percent_identity: $percent_identity" >> "$CONFIG_FILE"
-  echo "  poa_parameters: $poa_parameters" >> "$CONFIG_FILE"
-  echo "  segment_length: $segment_length" >> "$CONFIG_FILE"
-  echo "  threads: $threads" >> "$CONFIG_FILE"
-  echo "runid: $runid" >> "$CONFIG_FILE"
-  echo "input_sample: $input_sample" >> "$CONFIG_FILE"
-
-  # ... (rest of your script)
-
-  # Run Snakemake with the defined configuration
-  snakemake -p --forcerun --cores --configfile "$CONFIG_FILE"
-
-}
-
-# Function to analyze a single community
-function analyze_community {
-  local i=$1
-  echo "Analysing community: ${i}"
-  sed "s#sample:.*#sample: ${wd}community.${i}.fa.gz#g" config.yaml > temp.yaml && mv temp.yaml config.yaml
-  sed "s#runid:.*#runid: ${runid}/community${i}#g" config.yaml > temp.yaml && mv temp.yaml config.yaml
-
-  # Call the function to run processes
-  run_snakemake
-}
-
-
+# Output colours
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+CYAN='\033[1;36m'
+NC='\033[0m' # No Colour
 
 #########################
 #   PARAMETER PARSING   #
@@ -101,7 +34,7 @@ while [[ $# -gt 0 ]]; do
       number_of_genomes="$2"
       shift 2
       ;;
-    -pi|--percent-identity)
+    -p|--percent-identity)
       percent_identity="$2"
       shift 2
       ;;
@@ -134,19 +67,19 @@ done
 
 # Check for required parameters
 if [[ -z "$runid" || -z "$input_sample" ]]; then
-    echo -e "Version: 0.7\n"
+    echo -e "${GREEN}MPI Version: 0.7${NC}\n"
     echo -e "Usage:\n"
-    echo -e "\tbash run.sh [options] -i <input> -o <output_dir>\n"
+    echo -e "\tbash run.sh [options] -i <input> -r <runid>\n"
     echo -e "Description:\n"
     echo -e "\tPipeline for pangenome graph creation using pggb\n"
     echo -e "Options:\n"
     echo -e "Mandatory:\n"
     echo -e "\t-i --input-sample\t\tinput fasta file or directory. Zipped files are supported.\n"
-    echo -e "\t-o --output-directory\t\tdirectory to output all files. Need not be yet created.\n"
+    echo -e "\t-r --runid\t\tdirectory to output all files. Need not be yet created.\n"
     echo -e "Optional:\n"
     echo -e "\t-mc --multiple-chromosomes\tUse this parameter if the sample contains multiple chromosomes.\n"
     echo -e "\t-n --number-of-genomes\t\tThe number of genomes in the sample\n"
-    echo -e "\t-p --percent-identity\t\tThe lowest similarity between all sequences in percentages\n"
+    echo -e "\t-p --percent-identity\t\tThe lowest similarity between all sequences in percentages [default: 95]\n"
     echo -e "\t-poa --poa-parameters\t\tThe partial order alignment parameters to use (asm5, asm10, asm20)\n"
     echo -e "\t-s --segment-length\t\tSegment length for mapping [default: 10k]\n"
     echo -e "\t-t --threads\t\t\tNumber of threads to use [default: 16]\n"
@@ -155,71 +88,51 @@ fi
 
 
 # Check if the input is a directory. If so, create a combined fasta file and adjust the sample parameter accordingly
-[[ -d "$sample" ]] && sample=$(combine_fasta "$sample")
+echo "Sample path: ${input_sample}"
+runid=$(basename "$input_sample")
+
+if [[ -d "$input_sample" ]]; then
+    if [[ ! input_sample == */ ]]; then
+        input_sample="${input_sample}/"
+    fi
+  combine_fasta $input_sample
+  input_dir=${input_sample}
+  input_sample=${input_sample}"combined.fa"
+fi
 
 # Check if optional parameters are within valid ranges or values
 if [[ ! -z "$percent_identity" && ($percent_identity -lt 0 || $percent_identity -gt 100) ]]; then
-  echo "Error: Percent identity should be between 0 and 100."
+  echo -e "${RED}Error${NC}: Percent identity should be between 0 and 100."
   exit 1
 fi
 
 if [[ ! -z "$poa_parameters" && ($poa_parameters != "asm5" && $poa_parameters != "asm10" && $poa_parameters != "asm20") ]]; then
-  echo "Error: POA parameters should be one of asm5, asm10, or asm20."
+  echo "${RED}Error${NC}: POA parameters should be one of asm5, asm10, or asm20."
   exit 1
 fi
 
 if [[ $segment_length -le 0 ]]; then
-  echo "Error: Segment length should be above 0."
+  echo "${RED}Error${NC}: Segment length should be above 0."
   exit 1
 fi
 
 if [[ $threads -le 0 ]]; then
-  echo "Error: Threads should be above 0."
+  echo "${RED}Error${NC}: Threads should be above 0."
   exit 1
 fi
 
-# Check missing optional parameters
-if [[ -z "$number_of_genomes" ]]; then
-  # Calculate the number of genomes by counting headers in the input sample
-  number_of_genomes=$(zgrep ">" "${input_sample}" | wc -l)
-  echo "Missing parameter for number of genomes. Calculated: ${number_of_genomes}"
-fi
-
-if [[ -z "$percent_identity" ]]; then
-  # Calculate percent identity using 'mash triangle'
-  max_divergence=$(mash triangle -E "${input_sample}" | awk '{print $3}' | sort -g | tail -n1)
-  percent_identity=$(awk "BEGIN { print 100 - $max_divergence * 100 }")
-  echo "Missing parameter for percent identity. Estimated: ${lowest_percent_identity}"
-fi
-
-if [[ -z "$poa_parameters" ]]; then
-  # Determine POA parameters based on percent identity
-  if (( percent_identity > 99 )); then
-    poa_parameters="asm5"
-  elif (( percent_identity > 90 )); then
-    poa_parameters="asm10"
-  else
-    poa_parameters="asm20"
-    echo "Missing parameter for poa parameters. Using ${poa_parameters} (based on percent identity)"
-  fi
-fi
-
-
-if [[ -z "$segment_length" ]]; then
-  segment_length=10000
-  echo "Missing parameter for segment length. Using default (3000bp)"
-fi
-
+# Call the function to check and fill missing parameters
+check_and_fill_parameters
 
 # Display the parsed parameters
-echo "Multiple Chromosomes: $multiple_chromosomes"
+echo -e "${CYAN}Multiple Chromosomes: $multiple_chromosomes"
 echo "Number of Genomes: $number_of_genomes"
 echo "Percent Identity: $percent_identity"
 echo "POA Parameters: $poa_parameters"
 echo "Segment Length: $segment_length"
 echo "Threads: $threads"
 echo "RunID: $runid"
-echo "Input Sample: $input_sample"
+echo "Input Sample: ${input_sample}${NC}"
 
 #############################
 #            MAIN           #
@@ -228,11 +141,10 @@ echo "Input Sample: $input_sample"
 if [[ $multiple_chromosomes == 1 ]]; then
   echo "Running sequence partitioning"
 
-  if [ ! -d ${sample}seqpart/ ]; then
-    python3 scripts/combine.py ${sample}
-    mkdir ${sample}seqpart/
-    mv ${sample}combined.fa ${sample}/seqpart/combined.fa
-    wd=${sample}seqpart/
+  if [ ! -d ${input_dir}seqpart/ ]; then
+    mkdir ${input_dir}seqpart/
+    mv ${input_sample} ${input_dir}seqpart/combined.fa
+    wd=${input_dir}seqpart/
     bgzip -@ 4 ${wd}combined.fa
 
     mash dist ${wd}combined.fa.gz ${wd}combined.fa.gz -i > ${wd}distances.tsv
@@ -242,21 +154,41 @@ if [[ $multiple_chromosomes == 1 ]]; then
       -w ${wd}distances.tsv.edges.weights.txt \
       -n ${wd}distances.tsv.vertices.id2name.txt
   else
-    wd=${sample}seqpart/
+    wd=${input_dir}seqpart/
   fi
 
   echo "Indexing data"
   ncommunities=$(ls ${wd} | grep distances.tsv.edges.weights.txt.community | wc -l)
 
-  # Use parallel to analyze communities in parallel
-  parallel -j $threads 'analyze_community {}' ::: $(seq 0 $ncommunities)
+  for i in $(seq 0 $(($ncommunities - 1))); do
+    echo "Indexing community $i"
+    samtools faidx ${wd}combined.fa.gz $(cat ${wd}distances.tsv.edges.weights.txt.community.$i.txt) | \
+    bgzip -@ 4 -c > ${wd}community.$i.fa.gz
+  done
 
-  echo "Sequence partitioning finished."
+  echo "Sequence partitioning finished"
+
+  export -f analyse_community  # Export the function to make it available to parallel
+  export -f run_snakemake
+  export number_of_genomes
+  export percent_identity
+  export poa_parameters
+  export segment_length
+  export threads
+  export runid
+  export input_sample
+  export input_dir
+  export wd
+
+  for i in $(seq 0 $(($ncommunities - 1))); do
+    echo "Analysing community ${i}"
+    analyse_community ${i}
+  done
 
 else  # No sequence partitioning, directly call the function
-  run_snakemake
+  run_snakemake $number_of_genomes $percent_identity $poa_parameters $segment_length $threads $runid $input_sample
 fi
 
-echo "Done! Results can be found in ${PWD}/output/${runid}"
+echo "${GREEN}Done! Results can be found in ${PWD}/output/${runid}${NC}"
 
 
