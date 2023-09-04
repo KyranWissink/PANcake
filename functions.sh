@@ -105,7 +105,7 @@ function run_snakemake {
   fi
 
   if [ ! -d "output/${runid}" ]; then
-    mkdir "output/${runid}"
+    mkdir -p "output/${runid}"
   fi
 
   # Define the snakemake config path using conditional assignment
