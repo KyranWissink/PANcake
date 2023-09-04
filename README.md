@@ -2,6 +2,7 @@
 Microbial Pangenome Interpretation
 ---------------------------------------------------------
 ## Setup and quick start
+
 It is recommended to set up a new conda environment for MPI.
 
 1) Clone this repo into your working directory
