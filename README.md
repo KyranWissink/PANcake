@@ -11,7 +11,7 @@ git clone https://www.github.com/KyranWissink/MPI
 cd MPI
 ```
 
-2) Set up the mamba/conda environment
+2) Set up the conda environment
 ```bash
 mamba env create -f environment.yml
 mamba activate mpi
