@@ -66,17 +66,17 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Check for required parameters
-if [[ -z "$runid" || -z "$input_sample" ]]; then
+if [[ -z "$input_sample" ]]; then
     echo -e "${GREEN}MPI Version: 0.7${NC}\n"
     echo -e "Usage:\n"
-    echo -e "\tbash run.sh [options] -i <input> -r <runid>\n"
+    echo -e "\tbash run.sh [options] -i <input>\n"
     echo -e "Description:\n"
     echo -e "\tPipeline for pangenome graph creation using pggb\n"
     echo -e "Options:\n"
     echo -e "Mandatory:\n"
-    echo -e "\t-i --input-sample\t\tinput fasta file or directory. Zipped files are supported.\n"
-    echo -e "\t-r --runid\t\tdirectory to output all files. Need not be yet created.\n"
+    echo -e "\t-i --input-sample\t\tinput file(s) (fa, fa.gz, dir).\n"
     echo -e "Optional:\n"
+    echo -e "\t-r --runid\t\tname for the run. Will also name directories this.\n"
     echo -e "\t-mc --multiple-chromosomes\tUse this parameter if the sample contains multiple chromosomes.\n"
     echo -e "\t-n --number-of-genomes\t\tThe number of genomes in the sample\n"
     echo -e "\t-p --percent-identity\t\tThe lowest similarity between all sequences in percentages [default: 95]\n"
@@ -84,20 +84,6 @@ if [[ -z "$runid" || -z "$input_sample" ]]; then
     echo -e "\t-s --segment-length\t\tSegment length for mapping [default: 10k]\n"
     echo -e "\t-t --threads\t\t\tNumber of threads to use [default: 16]\n"
     exit 1
-fi
-
-
-# Check if the input is a directory. If so, create a combined fasta file and adjust the sample parameter accordingly
-echo "Sample path: ${input_sample}"
-runid=$(basename "$input_sample")
-
-if [[ -d "$input_sample" ]]; then
-    if [[ ! input_sample == */ ]]; then
-        input_sample="${input_sample}/"
-    fi
-  combine_fasta $input_sample
-  input_dir=${input_sample}
-  input_sample=${input_sample}"combined.fa"
 fi
 
 # Check if optional parameters are within valid ranges or values
@@ -121,22 +107,47 @@ if [[ $threads -le 0 ]]; then
   exit 1
 fi
 
+
+
+
+# If no runid was supplied, then create one based on the filename
+if [ -z "$runid" ]; then
+  runid=$(basename "$input_sample" | cut -d. -f1)
+fi
+
+# Check if the input is a directory. If so, create a combined fasta file and adjust the sample parameter accordingly
+if [[ -d "$input_sample" ]]; then
+    if [[ ! input_sample == */ ]]; then
+        input_sample="${input_sample}/"
+    fi
+  combine_fasta $input_sample
+  input_dir=${input_sample}
+  input_sample=${input_sample}"combined.fa"
+fi
+
+
+
 # Call the function to check and fill missing parameters
 check_and_fill_parameters
 
 # Display the parsed parameters
-echo -e "${CYAN}Multiple Chromosomes: $multiple_chromosomes"
+echo -e "${CYAN}Sample path: ${input_sample}"
+echo "Multiple Chromosomes: $multiple_chromosomes"
 echo "Number of Genomes: $number_of_genomes"
 echo "Percent Identity: $percent_identity"
 echo "POA Parameters: $poa_parameters"
 echo "Segment Length: $segment_length"
 echo "Threads: $threads"
 echo "RunID: $runid"
-echo "Input Sample: ${input_sample}${NC}"
+echo -e "Input Sample: ${input_sample}${NC}"
+
+
 
 #############################
 #            MAIN           #
 #############################
+
+mkdir -p "output/${runid}"
 
 if [[ $multiple_chromosomes == 1 ]]; then
   echo "Running sequence partitioning"
@@ -162,6 +173,7 @@ if [[ $multiple_chromosomes == 1 ]]; then
 
   for i in $(seq 0 $(($ncommunities - 1))); do
     echo "Indexing community $i"
+    mkdir -p "output/${runid}/community${i}"
     samtools faidx ${wd}combined.fa.gz $(cat ${wd}distances.tsv.edges.weights.txt.community.$i.txt) | \
     bgzip -@ 4 -c > ${wd}community.$i.fa.gz
   done
@@ -189,6 +201,6 @@ else  # No sequence partitioning, directly call the function
   run_snakemake $number_of_genomes $percent_identity $poa_parameters $segment_length $threads $runid $input_sample
 fi
 
-echo "${GREEN}Done! Results can be found in ${PWD}/output/${runid}${NC}"
+echo -e  "${GREEN}Done! Results can be found in ${PWD}/output/${runid}${NC}"
 
 

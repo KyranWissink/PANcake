@@ -4,7 +4,6 @@ import numpy as np
 import concurrent.futures
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from joblib import Parallel, delayed
 
 
 def create_heatmap(genomes, nodes, sequence_lengths, data, col_totals, coreness, start_pos_matrix, end_pos_matrix):
@@ -25,18 +24,37 @@ def create_heatmap(genomes, nodes, sequence_lengths, data, col_totals, coreness,
     Returns:
         A Plotly Figure object representing the heatmap of node presence in genomes.
     """
-    # Define the tile positions and width
-    tile_position = 0
 
-    tile_positions = []
-    tile_widths = []
+    # Create a 3D dataframe to store node presence, start position, end position, and hovertext
+    heatmap_data = pd.DataFrame(index=genomes, columns=nodes, dtype='object')
 
-    for length in sequence_lengths:
-        tile_positions.append(tile_position)
-        tile_widths.append(length)
-        tile_position += length
+    for i in range(len(genomes)):
+        for j in range(len(nodes)):
+            node_name = nodes[j]
+            genome_name = genomes[i]
+            node_sequence_length = sequence_lengths[j]
+            node_coreness = coreness.iloc[j]  # Assuming coreness is a list of coreness values for nodes
+            start_pos = start_pos_matrix.iloc[i, j]
+            end_pos = end_pos_matrix.iloc[i, j]
 
-    tile_positions.append(tile_position)  # Add the last position
+            if abs(data.loc[genome_name, node_name]) == 1:
+                hovertext = (
+                    f'Genome: {genome_name}<br>'
+                    f'Node: {node_name}<br>'
+                    f'Length: {node_sequence_length}<br>'
+                    f'Coreness: {node_coreness}<br>'
+                    f'Start pos: {start_pos} bp<br>'
+                    f'End pos: {end_pos} bp'
+                )
+            else:
+                hovertext = f'Genome: {genome_name}<br>Node: {node_name}<br>Length: {node_sequence_length} (not present)'
+
+            heatmap_data.at[genome_name, node_name] = {
+                'presence': data.at[genome_name, node_name],
+                'start_pos': start_pos,
+                'end_pos': end_pos,
+                'hovertext': hovertext
+            }
 
     # Define a discrete color scale
     colors = ["#32CD32", "#D3D3D3", "#1f77b4"]
@@ -46,48 +64,35 @@ def create_heatmap(genomes, nodes, sequence_lengths, data, col_totals, coreness,
     else:
         colorscale = [[0, colors[1]], [1, colors[2]]]  # -1 is green, 0 is white, 1 is blue
 
-    # Create hovertext for every point on the heatmap
-    hovertext = np.empty((len(genomes), len(nodes)), dtype=object)  # hovertext should be same size as data
-    for i, row in enumerate(data.to_numpy()):
-        for j, val in enumerate(row):
-            if abs(val) == 1:  # Absolute value because reverse nodes are -1
-                hovertext[i][j] = \
-                    f'Genome: {genomes[i]}<br>Node: {nodes[j]}<br>Length: {sequence_lengths[j]}<br>' + \
-                    f'Coreness: {coreness[j]}<br>Start pos: {start_pos_matrix[j+1][i]} bp<br>' + \
-                    f'End pos: {end_pos_matrix[j+1][i]} bp'  # +1 because this dataframe has the nodes and therefore
-                # does not start with 0.
-            else:
-                hovertext[i][j] = \
-                    f'Genome: {genomes[i]}<br>Node: {nodes[j]}<br>Length: {sequence_lengths[j]} (not present)'
-
     # Create the main heatmap of 1s and 0s representing node presence in the genomes
     fig1 = go.Figure(data=go.Heatmap(
-        z=data,
-        x=tile_positions,
+        z=[[cell['presence'] for cell in row] for row in heatmap_data.values],
+        x=nodes,
         y=genomes,
         colorscale=colorscale,
-        hovertext=hovertext,  # Need to reference this again or it doesn't work
+        hovertext=[[cell['hovertext'] for cell in row] for row in heatmap_data.values],
         hovertemplate='%{hovertext}',
-        name='',  # To get rid of 'trace0' next to hovertext
-        showscale=False  # A legend for the main heatmap is useless as it is binary
+        name='',
+        showscale=False
     ))
+
     # Create the second heatmap of total presence of nodes in genomes
     fig2 = go.Figure(data=go.Heatmap(
         z=[col_totals],
-        x=tile_positions,
+        x=nodes,
         y=[''],
         colorscale='Reds',
         colorbar=dict(title='Total'),
         hovertext=[
-            [f'Total: {t}<br>Node: {nodes[i]}<br>Length: {sequence_lengths[i]}<br>Coreness: {coreness[i]}' for i, t in
+            [f'Total: {t}<br>Node: {nodes[i]}<br>Length: {sequence_lengths[i]}<br>Coreness: {coreness.iloc[i]}' for i, t in
              enumerate(col_totals)]],
         hovertemplate='%{hovertext}',
-        name=''  # To get rid of 'trace0' next to hovertext
+        name=''
     ))
 
     # Add both heatmaps to a subplot
-    height2 = 1 / (len(genomes) + 1)  # The height of the total row should be proportional to the number of genomes
-    height1 = 1 - height2  # The main heatmap takes up the rest of the space
+    height2 = 1 / (len(genomes) + 1)
+    height1 = 1 - height2
 
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0, row_heights=(height1, height2),
                         subplot_titles=['Genomes and Sequences', 'Total node presence'])
@@ -98,7 +103,7 @@ def create_heatmap(genomes, nodes, sequence_lengths, data, col_totals, coreness,
     # Update the layout
     fig.update_layout(
         title='Node presence in genomes',
-        xaxis_title='Total node presence',  # This is actually what you see in the total row
+        xaxis_title='Total node presence',
         yaxis_title='Genomes',
         font=dict(family='Open Sans, sans-serif', size=16),
         margin=dict(l=100, r=50, t=100, b=50),
@@ -174,7 +179,7 @@ def node_position_handler(segment_list, gfa):
     """
 
     # Create empty matrices to hold the node positions for each genome
-    start_pos_matrix = pd.DataFrame(columns=[int(x) for x in gfa.segment_names], index=gfa.path_names, dtype='int32')
+    start_pos_matrix = pd.DataFrame(columns=[int(x) for x in gfa.segment_names], index=gfa.path_names)
     start_pos_matrix.columns.name = 'nodes'
     start_pos_matrix.index.name = 'genomes'
     end_pos_matrix = start_pos_matrix.copy()
@@ -205,11 +210,10 @@ def convert_path_to_binary_list(node_count, path):
 
 
     # Create a binary list where 1 indicates the presence of a node in the path
-    binary_list = np.array([int(i + 1 in node_ids) for i in range(node_count)], dtype=np.int8)
+    binary_list = np.array([int(i + 1 in node_ids) for i in range(node_count)])
 
     # Invert the values of nodes that have a "-" orientation in the path
-    inverted_nodes = np.array([int(node.replace("-", "")) for node in nodes_with_orientation if "-" in node],
-                              dtype=np.int32)
+    inverted_nodes = np.array([int(node.replace("-", "")) for node in nodes_with_orientation if "-" in node])
     binary_list[inverted_nodes - 1] *= -1
 
     return path.name, binary_list
@@ -224,7 +228,7 @@ def generate_matrix(gfa: gfapy.Gfa) -> pd.DataFrame:
     Returns:
         pandas.DataFrame: Binary heatmap with the present nodes for each path.
     """
-    node_presence_matrix = pd.DataFrame(columns=gfa.segment_names, index=gfa.path_names, dtype='int8')
+    node_presence_matrix = pd.DataFrame(columns=gfa.segment_names, index=gfa.path_names)
     node_presence_matrix.columns.name = 'nodes'
     node_presence_matrix.index.name = 'genomes'
     node_count = len(gfa.segment_names)
@@ -298,7 +302,7 @@ def coreness_per_genomes(coreness, path, segment_list):
         'unique': 0
     }
     for node in node_ids:
-        state = coreness[node - 1]  # State is either core, accessory, etc.
+        state = coreness[str(node)]  # State is either core, accessory, etc.
         node_length = len(segment_list.loc[node].sequence)
         counts[state] += node_length  # Count up corresponding state in dict
 

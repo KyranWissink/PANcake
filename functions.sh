@@ -104,15 +104,9 @@ function run_snakemake {
     return 1
   fi
 
-  if [ ! -d "output/${runid}" ]; then
-    mkdir -p "output/${runid}"
-  fi
-
   # Define the snakemake config path using conditional assignment
   # Community number is already included in the runid.
   CONFIG_FILE="output/${runid}/snakemake_config.yaml"
-
-  touch CONFIG_FILE
 
   # Create a YAML-formatted config file
   cat << EOF > "$CONFIG_FILE"
