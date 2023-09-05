@@ -23,7 +23,7 @@ MPI Version: 0.7
 
 Usage:
 
-        bash run.sh [options] -i <input> -o <output_dir>
+        bash run.sh [options] -i <input> 
 
 Description:
 
