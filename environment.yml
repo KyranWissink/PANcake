@@ -15,4 +15,4 @@ dependencies:
   - gfapy
   - plotly
   - python-kaleido
-  - igraph 
+  - python-igraph 
