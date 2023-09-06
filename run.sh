@@ -149,32 +149,30 @@ echo -e "Input Sample: ${input_sample}${NC}"
 mkdir -p "output/${runid}"
 
 if [[ $multiple_chromosomes == 1 ]]; then
-  echo "Running sequence partitioning"
 
-  if [ ! -d ${input_dir}seqpart/ ]; then
-    mkdir ${input_dir}seqpart/
-    mv ${input_sample} ${input_dir}seqpart/combined.fa
-    wd=${input_dir}seqpart/
-    bgzip -@ 4 ${wd}combined.fa
+  seqpart_dir=${input_dir}seqpart/
 
-    mash dist ${wd}combined.fa.gz ${wd}combined.fa.gz -i > ${wd}distances.tsv
-    python3 scripts/mash2net.py -m ${wd}distances.tsv
-    python3 scripts/net2communities.py \
-      -e ${wd}distances.tsv.edges.list.txt \
-      -w ${wd}distances.tsv.edges.weights.txt \
-      -n ${wd}distances.tsv.vertices.id2name.txt
+  if [ ! -d $seqpart_dir ]; then
+    run_seqpart $seqpart_dir
   else
-    wd=${input_dir}seqpart/
+    read -p "It looks like sequence partitioning was already performed on this data: directory ${seqpart_dir} already exists. Do you want to execute this code again? (y/n): " execute_seqpart
+    if [ "$execute_seqpart" == "y" ]; then
+      rm -rf $seqpart_dir
+      run_seqpart $seqpart_dir
+    else
+      echo "Code execution skipped."
+    fi
   fi
 
-  echo "Indexing data"
-  ncommunities=$(ls ${wd} | grep distances.tsv.edges.weights.txt.community | wc -l)
+
+  echo "Running sequence partitioning"
+  ncommunities=$(ls ${seqpart_dir} | grep distances.tsv.edges.weights.txt.community | wc -l)
 
   for i in $(seq 0 $(($ncommunities - 1))); do
     echo "Indexing community $i"
     mkdir -p "output/${runid}/community${i}"
-    samtools faidx ${wd}combined.fa.gz $(cat ${wd}distances.tsv.edges.weights.txt.community.$i.txt) | \
-    bgzip -@ 4 -c > ${wd}community.$i.fa.gz
+    samtools faidx ${seqpart_dir}combined.fa.gz $(cat ${seqpart_dir}distances.tsv.edges.weights.txt.community.$i.txt) | \
+    bgzip -@ 4 -c > ${seqpart_dir}community.$i.fa.gz
   done
 
   echo "Sequence partitioning finished"
@@ -189,10 +187,9 @@ if [[ $multiple_chromosomes == 1 ]]; then
   export runid
   export input_sample
   export input_dir
-  export wd
+  export seqpart_dir
 
   for i in $(seq 0 $(($ncommunities - 1))); do
-    echo "Analysing community ${i}"
     analyse_community ${i}
   done
 

@@ -89,6 +89,20 @@ function combine_fasta {
   echo "Combined ${#fasta_files[@]} .fasta files into '$output_file'."
 }
 
+function run_seqpart {
+  local wd="$1"
+
+  mkdir $wd
+  mv ${input_sample} ${wd}combined.fa
+  bgzip -@ 4 ${wd}combined.fa
+  mash dist ${wd}combined.fa.gz ${wd}combined.fa.gz -i > ${wd}distances.tsv
+  python3 scripts/mash2net.py -m ${wd}distances.tsv
+  python3 scripts/net2communities.py \
+    -e ${wd}distances.tsv.edges.list.txt \
+    -w ${wd}distances.tsv.edges.weights.txt \
+    -n ${wd}distances.tsv.vertices.id2name.txt
+}
+
 function run_snakemake {
   # Function to prepare everything for snakemake to run and then run snakemake
   # Parameters:
@@ -148,7 +162,7 @@ function analyse_community {
 
   echo "Analysing community: ${i}"
 
-  local input_sample="${wd}community.${i}.fa.gz"
+  local input_sample="${seqpart_dir}community.${i}.fa.gz"
   local new_runid="${runid}/community${i}"
 
   echo "Initialising..."
