@@ -54,11 +54,13 @@ function combine_fasta {
   local directory="$1"
   local output_file="${directory}combined.fa"
 
+  # Skip combination of fasta files if the combined file already exists
   if [[ -f "$output_file" ]]; then
     echo "'$output_file' already exists, skipping file combination."
     return
   fi
 
+  # Throw an error if the directory does not exist.
   if [[ ! -d "$directory" ]]; then
     echo "Error: Directory '$directory' does not exist."
     return 1
@@ -66,14 +68,16 @@ function combine_fasta {
 
   fasta_files=("$directory"*.fa*)
 
+  # Throw an error if no fasta files were found in the directory.
   if [[ ${#fasta_files[@]} -eq 0 ]]; then
     echo "Error: No .fasta files found in directory '$directory'."
     return 1
   fi
 
+  # Combine all the fasta files into one big file, and keep genome/chromosome information
   for filename in "${fasta_files[@]}"; do
-    file_name=$(basename "$filename" | cut -d. -f1)
-    sed "s/^>/>$file_name_/" "$filename"
+    genome_name=$(basename -s .fasta "$filename" | basename -s .fa "$filename") # Cover both options
+    sed "s/^>/>$genome_name\_/" "$filename" | sed -E "s/^>$genome_name>$genome_name/>$genome_name/" # Remove duplicate genome names
   done > "$output_file"
 
   local exit_code=$?

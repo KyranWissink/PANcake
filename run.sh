@@ -117,14 +117,13 @@ fi
 
 # Check if the input is a directory. If so, create a combined fasta file and adjust the sample parameter accordingly
 if [[ -d "$input_sample" ]]; then
-    if [[ ! input_sample == */ ]]; then
+    if [[ ! $input_sample == */ ]]; then
         input_sample="${input_sample}/"
     fi
   combine_fasta $input_sample
   input_dir=${input_sample}
-  input_sample=${input_sample}"combined.fa"
+  input_sample=${input_dir}"combined.fa"
 fi
-
 
 
 # Call the function to check and fill missing parameters
