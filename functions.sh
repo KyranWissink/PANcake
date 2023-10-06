@@ -23,8 +23,8 @@ function check_and_fill_parameters {
     max_divergence=$(mash triangle -E "${input_sample}" | awk '{print $3}' | sort -g | tail -n1)
     percent_identity=$(awk "BEGIN { print 100 - $max_divergence * 100 }")
     echo "Missing parameter for percent identity. Estimated: ${percent_identity}"
-    if (( percent_identity < 50 )); then
-      percent_identity=75
+    if (( percent_identity < 75 )); then
+      echo "Error: Percent identity is too low to reliably build a pangenome graph."
     fi
   fi
 
