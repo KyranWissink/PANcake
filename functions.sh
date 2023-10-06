@@ -23,16 +23,16 @@ function check_and_fill_parameters {
     max_divergence=$(mash triangle -E "${input_sample}" | awk '{print $3}' | sort -g | tail -n1)
     percent_identity=$(awk "BEGIN { print 100 - $max_divergence * 100 }")
     echo "Missing parameter for percent identity. Estimated: ${percent_identity}"
-    if (( percent_identity < 75 )); then
+    if [ "$(echo "$percent_identity < 75" | bc -l)" -eq 1 ]; then
       echo "Error: Percent identity is too low to reliably build a pangenome graph."
     fi
   fi
 
   if [[ -z "$poa_parameters" ]]; then
     # Determine POA parameters based on percent identity
-    if (( percent_identity > 99 )); then
+    if [ "$(echo "$percent_identity < 99" | bc -l)" -eq 1 ]; then
       poa_parameters="asm5"
-    elif (( percent_identity > 90 )); then
+    elif [ "$(echo "$percent_identity < 90" | bc -l)" -eq 1 ]; then
       poa_parameters="asm10"
     else
       poa_parameters="asm20"
