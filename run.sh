@@ -7,7 +7,6 @@ source functions.sh
 #   INITIAL PARAMETERS    #
 ###########################
 
-percent_identity=95
 poa_parameters=""
 segment_length=10000
 threads=16

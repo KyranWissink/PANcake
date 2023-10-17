@@ -18,21 +18,22 @@ function check_and_fill_parameters {
     echo "Missing parameter for number of genomes. Calculated: ${number_of_genomes}"
   fi
 
-  if [[ -z "$percent_identity" ]]; then
+  if [[ -z "$percent_identity" && multiple_chromosomes -ne 1 ]]; then
     # Calculate percent identity using 'mash triangle'
     max_divergence=$(mash triangle -E "${input_sample}" | awk '{print $3}' | sort -g | tail -n1)
     percent_identity=$(awk "BEGIN { print 100 - $max_divergence * 100 }")
     echo "Missing parameter for percent identity. Estimated: ${percent_identity}"
-    if [ "$(echo "$percent_identity < 75" | bc -l)" -eq 1 ]; then
-      echo "Error: Percent identity is too low to reliably build a pangenome graph."
+    if (( $(echo "$percent_identity < 75" | bc -l) )); then
+      echo "Error: Percent identity too low."
+      return 1
     fi
   fi
 
   if [[ -z "$poa_parameters" ]]; then
     # Determine POA parameters based on percent identity
-    if [ "$(echo "$percent_identity < 99" | bc -l)" -eq 1 ]; then
+    if (( $(echo "$percent_identity < 99" | bc -l) )); then
       poa_parameters="asm5"
-    elif [ "$(echo "$percent_identity < 90" | bc -l)" -eq 1 ]; then
+    elif (( $(echo "$percent_identity < 90" | bc -l) )); then
       poa_parameters="asm10"
     else
       poa_parameters="asm20"
@@ -172,6 +173,9 @@ function analyse_community {
     echo "Error: Unable to determine the number of genomes."
     return 1
   fi
+
+  local max_divergence=$(mash triangle -E "${input_sample}" | awk '{print $3}' | sort -g | tail -n1)
+  local percent_identity=$(awk "BEGIN { print 100 - $max_divergence * 100 }")
 
   echo "Running snakemake..."
   run_snakemake "$number_of_genomes" "$percent_identity" "$poa_parameters" "$segment_length" "$threads" "$new_runid" "$input_sample" "$i"
