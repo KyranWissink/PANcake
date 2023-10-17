@@ -208,13 +208,19 @@ def convert_path_to_binary_list(node_count, path):
     nodes_with_orientation = path.to_list()[2].split(",")
     node_ids = {int(node.replace("+", "").replace("-", "")) for node in nodes_with_orientation}
 
-
     # Create a binary list where 1 indicates the presence of a node in the path
     binary_list = np.array([int(i + 1 in node_ids) for i in range(node_count)])
 
-    # Invert the values of nodes that have a "-" orientation in the path
-    inverted_nodes = np.array([int(node.replace("-", "")) for node in nodes_with_orientation if "-" in node])
-    binary_list[inverted_nodes - 1] *= -1
+    # Create a binary list where 1 indicates the presence of a node in the path
+    binary_list = np.zeros(node_count, dtype=int)  # Initialize with zeros
+
+    # Identify nodes with "-" orientation and set their values to -1 in binary_list
+    for node in nodes_with_orientation:
+        node_id = int(node.replace("+", "").replace("-", ""))
+        orientation = -1 if "-" in node else 1
+        binary_list[node_id - 1] = orientation
+
+    # Now binary_list contains -1 for nodes with "-" orientation and 1 for others
 
     return path.name, binary_list
 
