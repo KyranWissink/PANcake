@@ -29,7 +29,7 @@ function check_and_fill_parameters {
     fi
   fi
 
-  if [[ -z "$poa_parameters" ]]; then
+  if [[ -z "$poa_parameters" && multiple_chromosomes -ne 1 ]]; then
     # Determine POA parameters based on percent identity
     if (( $(echo "$percent_identity < 99" | bc -l) )); then
       poa_parameters="asm5"
@@ -176,6 +176,18 @@ function analyse_community {
 
   local max_divergence=$(mash triangle -E "${input_sample}" | awk '{print $3}' | sort -g | tail -n1)
   local percent_identity=$(awk "BEGIN { print 100 - $max_divergence * 100 }")
+
+  # Determine POA parameters based on percent identity
+  if (( $(echo "$percent_identity > 99" | bc -l) )); then
+    local poa_parameters="asm5"
+  elif (( $(echo "$percent_identity > 90" | bc -l) )); then
+    local poa_parameters="asm10"
+  else
+    local poa_parameters="asm20"
+  fi
+
+  echo "Calculated percent_identity: ${percent_identity}."
+  echo "Using ${poa_parameters} (based on percent identity)"
 
   echo "Running snakemake..."
   run_snakemake "$number_of_genomes" "$percent_identity" "$poa_parameters" "$segment_length" "$threads" "$new_runid" "$input_sample" "$i"
