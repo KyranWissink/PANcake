@@ -29,8 +29,8 @@ cd MPI
 
 2) Set up the conda environment
 ```bash
-mamba env create -f environment.yml
-mamba activate mpi
+conda env create -f environment.yml
+conda activate mpi
 ```
 
 3) Run bash run.sh for the parameters
