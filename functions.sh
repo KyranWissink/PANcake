@@ -24,8 +24,8 @@ function check_and_fill_parameters {
     percent_identity=$(awk "BEGIN { print 100 - $max_divergence * 100 }")
     echo "Missing parameter for percent identity. Estimated: ${percent_identity}"
     if (( $(echo "$percent_identity < 75" | bc -l) )); then
-      echo "Error: Percent identity too low."
-      return 1
+      echo "Error: Percent identity is low. Continuing with 75"
+      percent_identity=75
     fi
   fi
 
@@ -75,10 +75,9 @@ function combine_fasta {
     return 1
   fi
 
-  # Combine all the fasta files into one big file, and keep genome/chromosome information
+  # Combine all the fasta files into one big file
   for filename in "${fasta_files[@]}"; do
-    genome_name=$(basename -s .fasta "$filename" | basename -s .fa "$filename") # Cover both options
-    sed "s/^>/>$genome_name\_/" "$filename" | sed -E "s/^>$genome_name>$genome_name/>$genome_name/" # Remove duplicate genome names
+    cat "$filename" # Previously adjusted for genome name, not anymore due to incompatibility with snpEff
   done > "$output_file"
 
   local exit_code=$?
@@ -182,9 +181,11 @@ function analyse_community {
     local poa_parameters="asm5"
   elif (( $(echo "$percent_identity > 90" | bc -l) )); then
     local poa_parameters="asm10"
-  else
+  elif (( $(echo "$percent_identity > 75" | bc -l) )); then
     local poa_parameters="asm20"
-  fi
+  else # pctid under 75 only really occurs in communities of accessory chromosomes
+    local percent_identity=75 # Otherwise PGGB will not handle it
+    local poa_parameters="asm20"
 
   echo "Calculated percent_identity: ${percent_identity}."
   echo "Using ${poa_parameters} (based on percent identity)"
