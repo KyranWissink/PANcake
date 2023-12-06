@@ -67,7 +67,8 @@ function combine_fasta {
     return 1
   fi
 
-  fasta_files=("$directory"*.fa*)
+  extension=".f*"
+  fasta_files=($(find "$directory" -type f -name "*$extension"))
 
   # Throw an error if no fasta files were found in the directory.
   if [[ ${#fasta_files[@]} -eq 0 ]]; then
@@ -76,8 +77,8 @@ function combine_fasta {
   fi
 
   # Combine all the fasta files into one big file
-  for filename in "${fasta_files[@]}"; do
-    cat "$filename" # Previously adjusted for genome name, not anymore due to incompatibility with snpEff
+  for filepath in "${fasta_files[@]}"; do
+    cat "$filepath" # Previously adjusted for genome name, not anymore due to incompatibility with snpEff
   done > "$output_file"
 
   local exit_code=$?
@@ -186,6 +187,7 @@ function analyse_community {
   else # pctid under 75 only really occurs in communities of accessory chromosomes
     local percent_identity=75 # Otherwise PGGB will not handle it
     local poa_parameters="asm20"
+  fi
 
   echo "Calculated percent_identity: ${percent_identity}."
   echo "Using ${poa_parameters} (based on percent identity)"
