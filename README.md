@@ -71,3 +71,8 @@ Optional:
 
 4) View output at output/${runid}/
 
+<br><br>
+## Author and affiliation
+<img src="https://www.uu.nl/sites/default/files/styles/original_image/public/uu-logo-nl-geenwitruimte.png" height="92" width="291"><br><br>
+**Kyran Wissink**<br>Student Bioinformatics and Biocomplexity<br>Utrecht University<br>github.com/KyranWissink<br>k.wissink@students.uu.nl
+
