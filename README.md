@@ -1,5 +1,5 @@
-# MPI
-Microbial Pangenome Interpretation
+# PANcake
+Pangenome construction pipeline
 ---------------------------------------------------------
 ## Function
 
@@ -19,23 +19,23 @@ Microbial Pangenome Interpretation
 
 ## Setup and quick start
 
-It is recommended to set up a new conda environment for MPI.
+It is recommended to set up a new conda environment for PANcake.
 
 1) Clone this repo into your working directory
 ```bash
-git clone https://www.github.com/KyranWissink/MPI 
-cd MPI
+git clone https://www.github.com/KyranWissink/pancake 
+cd pancake
 ```
 
 2) Set up the conda environment
 ```bash
 conda env create -f environment.yml
-conda activate mpi
+conda activate pancake
 ```
 
 3) Run bash run.sh for the parameters
 ```bash
-MPI Version: 0.7
+PANcake Version: 0.8
 
 Usage:
 
